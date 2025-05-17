@@ -9,7 +9,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 // Configure chains
 const projectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID';
 
-const config = getDefaultConfig({
+export const config = getDefaultConfig({
   appName: 'Zenthra NFT Auction Platform',
   projectId,
   chains: [mainnet, sepolia, localhost],

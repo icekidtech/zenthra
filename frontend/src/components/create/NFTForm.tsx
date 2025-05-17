@@ -217,7 +217,7 @@ const NFTForm = () => {
       });
       
       const tx = await mintNFT(metadataUrl);
-      setTxHash(tx);
+      setTxHash(tx.hash);
       
       toast({
         title: "NFT Minted!",
