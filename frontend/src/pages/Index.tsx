@@ -8,8 +8,10 @@ import Header from '@/components/layout/Header';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from 'react-day-picker';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeSort, setActiveSort] = useState("trending");
@@ -125,7 +127,7 @@ const Index = () => {
               ) : (
                 <Button 
                   className="bg-zenthra-purple hover:bg-zenthra-purple/90 text-white px-6 py-3 rounded-lg font-medium"
-                  onClick={() => navigator("/dashboard")}
+                  onClick={() => navigate("/dashboard")}
                 >
                   Go to Dashboard
                 </Button>
