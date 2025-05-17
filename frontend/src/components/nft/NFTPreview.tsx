@@ -4,13 +4,16 @@ interface NFTPreviewProps {
   imageUrl?: string;
   title?: string;
   description?: string;
+  metadataUrl?: string; // Add this prop
 }
 
 export const NFTPreview: React.FC<NFTPreviewProps> = ({ 
   imageUrl = '', 
   title = 'NFT Title', 
-  description = 'NFT Description' 
+  description = 'NFT Description',
+  metadataUrl = ''  // Add this prop
 }) => {
+  // Use metadataUrl as needed
   return (
     <div className="border rounded-lg overflow-hidden shadow-sm">
       <div className="aspect-square bg-gray-100 flex items-center justify-center">
