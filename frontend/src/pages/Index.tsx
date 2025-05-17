@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import HeroSection from '@/components/home/HeroSection';
 import NFTGrid, { NFT } from '@/components/nft/NFTGrid';
@@ -6,8 +5,12 @@ import NFTFilter from '@/components/nft/NFTFilter';
 import FeaturedCreators from '@/components/home/FeaturedCreators';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from 'react-day-picker';
 
 const Index = () => {
+  const { isAuthenticated } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeSort, setActiveSort] = useState("trending");
 
@@ -115,12 +118,21 @@ const Index = () => {
               Join the Zenthra community to create, collect, and trade extraordinary NFTs on the Lisk blockchain.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <button className="bg-zenthra-purple hover:bg-zenthra-purple/90 text-white px-6 py-3 rounded-lg font-medium">
-                Connect Wallet
-              </button>
-              <button className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-lg font-medium">
+              {!isAuthenticated ? (
+                <div className="connect-wallet-button">
+                  <ConnectButton label="Connect Wallet" />
+                </div>
+              ) : (
+                <Button 
+                  className="bg-zenthra-purple hover:bg-zenthra-purple/90 text-white px-6 py-3 rounded-lg font-medium"
+                  onClick={() => navigator("/dashboard")}
+                >
+                  Go to Dashboard
+                </Button>
+              )}
+              <Button className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-6 py-3 rounded-lg font-medium">
                 Learn More
-              </button>
+              </Button>
             </div>
           </div>
         </section>
