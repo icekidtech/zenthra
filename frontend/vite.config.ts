@@ -15,9 +15,18 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      // Expose env variables to client-side code
-      "process.env.VITE_WALLETCONNECT_PROJECT_ID": JSON.stringify(
-        env.VITE_WALLETCONNECT_PROJECT_ID
+      // Make env variables available to client
+      "import.meta.env.VITE_PINATA_API_KEY": JSON.stringify(
+        env.VITE_PINATA_API_KEY
+      ),
+      "import.meta.env.VITE_PINATA_API_SECRET": JSON.stringify(
+        env.VITE_PINATA_API_SECRET
+      ),
+      "import.meta.env.VITE_PINATA_GATEWAY": JSON.stringify(
+        env.VITE_PINATA_GATEWAY
+      ),
+      "import.meta.env.VITE_CONTRACT_ADDRESS": JSON.stringify(
+        env.VITE_CONTRACT_ADDRESS
       ),
     },
   };

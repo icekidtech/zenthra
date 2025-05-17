@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,9 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Upload } from "lucide-react";
+import { Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { uploadFileToPinata, uploadJSONToPinata } from "@/lib/pinata-service";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface NFTFormData {
   title: string;
@@ -22,9 +23,18 @@ interface NFTFormData {
   maxMints?: number;
 }
 
+interface UploadState {
+  status: 'idle' | 'uploading' | 'success' | 'error';
+  message?: string;
+}
+
 const NFTForm = () => {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
+  const [imageCid, setImageCid] = useState<string | null>(null);
+  const [metadataUrl, setMetadataUrl] = useState<string | null>(null);
   const { toast } = useToast();
   
   const form = useForm<NFTFormData>({
@@ -38,20 +48,52 @@ const NFTForm = () => {
     }
   });
   
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Preview the image
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedImage(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    // Preview the image
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setUploadedImage(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Store the file for later upload
+    setUploadedFile(file);
+    
+    try {
+      setUploadState({ status: 'uploading', message: 'Uploading image to IPFS...' });
+      
+      // Upload to Pinata
+      const cid = await uploadFileToPinata(file);
+      setImageCid(cid);
+      
+      setUploadState({ 
+        status: 'success', 
+        message: `Image uploaded successfully! CID: ${cid.substring(0, 6)}...${cid.substring(cid.length - 4)}` 
+      });
+      
+      toast({
+        title: "Image uploaded",
+        description: "Image successfully stored on IPFS",
+      });
+    } catch (error) {
+      setUploadState({ 
+        status: 'error', 
+        message: error instanceof Error ? error.message : 'Unknown error uploading image' 
+      });
+      
+      toast({
+        title: "Upload failed",
+        description: "Could not upload image to IPFS. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   
   const onSubmit = async (data: NFTFormData) => {
-    if (!uploadedImage) {
+    if (!uploadedImage || !imageCid) {
       toast({
         title: "Image required",
         description: "Please upload an image for your NFT",
@@ -62,25 +104,80 @@ const NFTForm = () => {
     
     setIsSubmitting(true);
     
-    // Simulate blockchain interaction
     try {
-      // This would be replaced with actual blockchain calls
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create metadata JSON
+      const pinataGateway = import.meta.env.VITE_PINATA_GATEWAY || 'gateway.pinata.cloud';
+      const imageUrl = `https://${pinataGateway}/ipfs/${imageCid}`;
+      
+      const metadata = {
+        name: data.title,
+        description: data.description,
+        image: imageUrl,
+        attributes: [
+          {
+            trait_type: "Starting Price",
+            value: data.startingPrice
+          },
+          {
+            trait_type: "Royalty Percentage",
+            value: data.royaltyPercentage
+          },
+          {
+            trait_type: "Duration",
+            value: `${data.duration} days`
+          }
+        ]
+      };
+      
+      if (data.mintable) {
+        metadata.attributes.push({
+          trait_type: "Mintable",
+          value: "Yes"
+        });
+        
+        if (data.maxMints) {
+          metadata.attributes.push({
+            trait_type: "Max Editions",
+            value: data.maxMints
+          });
+        }
+      }
+      
+      // Normalize title for filename
+      const safeFileName = data.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      
+      toast({
+        title: "Creating metadata",
+        description: "Uploading NFT metadata to IPFS...",
+      });
+      
+      // Upload metadata to Pinata
+      const metadataCid = await uploadJSONToPinata(metadata, safeFileName);
+      const fullMetadataUrl = `https://${pinataGateway}/ipfs/${metadataCid}`;
+      setMetadataUrl(fullMetadataUrl);
+      
+      toast({
+        title: "Metadata created",
+        description: "Your NFT metadata has been stored on IPFS",
+      });
+      
+      // Here you would call your smart contract to mint the NFT with the metadata URL
+      // For now, we'll just show a success message
       
       toast({
         title: "NFT created!",
-        description: "Your NFT has been successfully created and listed",
+        description: "Your NFT has been successfully prepared. Ready to mint!",
       });
       
-      // Reset form
-      form.reset();
-      setUploadedImage(null);
+      // Instead of resetting the form immediately, we'll show the success state
+      // so the user can see the metadata URL if they want
     } catch (error) {
       toast({
         title: "Creation failed",
-        description: "There was an error creating your NFT",
+        description: error instanceof Error ? error.message : "Failed to create NFT metadata",
         variant: "destructive"
       });
+      console.error("NFT creation error:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -243,9 +340,64 @@ const NFTForm = () => {
               />
             )}
             
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Creating NFT..." : "Create NFT"}
+            {/* Add upload status indicator */}
+            {uploadState.status !== 'idle' && (
+              <Alert 
+                variant={uploadState.status === 'error' ? 'destructive' : 'default'}
+                className={`my-4 ${uploadState.status === 'uploading' ? 'border border-input bg-background/50' : ''}`}
+              >
+                {uploadState.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {uploadState.status === 'success' && <CheckCircle2 className="h-4 w-4 text-green-500 mr-2" />}
+                {uploadState.status === 'error' && <AlertCircle className="h-4 w-4 mr-2" />}
+                <AlertDescription>
+                  {uploadState.message}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Show metadata URL if available */}
+            {metadataUrl && (
+              <Alert className="my-4 bg-zenthra-purple/10">
+                <div className="flex flex-col">
+                  <span className="font-medium">Metadata URL:</span>
+                  <code className="text-xs break-all mt-1">{metadataUrl}</code>
+                </div>
+              </Alert>
+            )}
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isSubmitting || uploadState.status === 'uploading' || !imageCid}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating NFT Metadata...
+                </>
+              ) : (
+                "Create NFT"
+              )}
             </Button>
+            
+            {/* Reset button only after successful creation */}
+            {metadataUrl && (
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-full mt-2"
+                onClick={() => {
+                  form.reset();
+                  setUploadedImage(null);
+                  setUploadedFile(null);
+                  setUploadState({ status: 'idle' });
+                  setImageCid(null);
+                  setMetadataUrl(null);
+                }}
+              >
+                Create Another NFT
+              </Button>
+            )}
           </form>
         </Form>
       </div>
