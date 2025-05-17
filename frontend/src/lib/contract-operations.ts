@@ -1,9 +1,17 @@
 import { writeContract, readContract } from '@wagmi/core';
 import { contractAbi } from './contract-abi';
 import { parseUnits } from 'viem';
+import { createPublicClient, http } from 'viem';
+import { mainnet } from 'viem/chains';
 
 // Contract address from the deployed blockchain
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as `0x${string}`;
+
+// Create a public client instance
+const publicClient = createPublicClient({
+  chain: mainnet, // Change to your preferred chain
+  transport: http()
+});
 
 /**
  * Mint a new NFT using metadata URI
@@ -63,20 +71,41 @@ export async function createAuction({
 }
 
 /**
- * Get NFTs owned by the current wallet
+ * Get NFTs owned by an address
  */
 export async function getOwnedNFTs(walletAddress: string) {
   try {
-    const data = await readContract({
+    // Use viem's client.readContract directly
+    const result = await publicClient.readContract({
       address: CONTRACT_ADDRESS,
       abi: contractAbi,
       functionName: 'getNFTsByOwner',
-      args: [walletAddress],
+      args: [walletAddress]
     });
     
-    return data;
+    return result;
   } catch (error) {
-    console.error("Error fetching owned NFTs:", error);
+    console.error("Error getting owned NFTs:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch contract data for a specific token ID
+ */
+export async function fetchContractData(tokenId: string) {
+  try {
+    // Call readContract with both required arguments
+    const result = await readContract({
+      address: CONTRACT_ADDRESS,
+      abi: contractAbi,
+      functionName: 'getData',
+      args: [tokenId]
+    });
+    
+    return result;
+  } catch (error) {
+    console.error("Error reading contract data:", error);
     throw error;
   }
 }
