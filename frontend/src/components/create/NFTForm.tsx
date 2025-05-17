@@ -12,6 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { uploadFileToPinata, uploadJSONToPinata } from "@/lib/pinata-service";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { mintNFT } from "@/lib/contract-operations";
+import { NFTPreview } from "@/components/create/NFTPreview";
+import { useAccount } from "wagmi";
 
 interface NFTFormData {
   title: string;
@@ -36,6 +39,9 @@ const NFTForm = () => {
   const [imageCid, setImageCid] = useState<string | null>(null);
   const [metadataUrl, setMetadataUrl] = useState<string | null>(null);
   const { toast } = useToast();
+  const { isConnected, address } = useAccount();
+  const [isMinting, setIsMinting] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
   
   const form = useForm<NFTFormData>({
     defaultValues: {
@@ -180,6 +186,52 @@ const NFTForm = () => {
       console.error("NFT creation error:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+  
+  const handleMintNFT = async () => {
+    if (!metadataUrl) {
+      toast({
+        title: "Metadata required",
+        description: "Please create metadata first",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!isConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to mint an NFT",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsMinting(true);
+    
+    try {
+      toast({
+        title: "Minting NFT",
+        description: "Please confirm the transaction in your wallet",
+      });
+      
+      const tx = await mintNFT(metadataUrl);
+      setTxHash(tx);
+      
+      toast({
+        title: "NFT Minted!",
+        description: "Your NFT has been successfully minted",
+      });
+    } catch (error) {
+      console.error("Error minting NFT:", error);
+      toast({
+        title: "Minting failed",
+        description: error instanceof Error ? error.message : "Failed to mint NFT",
+        variant: "destructive"
+      });
+    } finally {
+      setIsMinting(false);
     }
   };
 
@@ -404,27 +456,28 @@ const NFTForm = () => {
       
       <div>
         <h2 className="text-2xl font-bold mb-6">Preview</h2>
-        <Card className="overflow-hidden">
-          {uploadedImage ? (
-            <div className="aspect-square">
-              <img 
-                src={uploadedImage} 
-                alt="NFT Preview" 
-                className="w-full h-full object-cover" 
-              />
-            </div>
-          ) : (
+        
+        {/* NFT Preview */}
+        {uploadedImage ? (
+          <NFTPreview 
+            metadataUrl={metadataUrl}
+            title={form.watch("title")}
+            description={form.watch("description")}
+            imageUrl={uploadedImage}
+            isLoading={isSubmitting}
+          />
+        ) : (
+          <Card className="overflow-hidden">
             <label 
               htmlFor="nft-upload" 
               className="flex flex-col items-center justify-center aspect-square bg-muted/50 border-2 border-dashed border-muted-foreground/50 rounded-md cursor-pointer"
             >
-              <Upload size={48} className="mb-4 text-muted-foreground/70" />
-              <div className="text-center">
-                <p className="text-lg font-medium">Upload NFT Image</p>
-                <p className="text-sm text-muted-foreground mt-1 mb-4">
-                  PNG, JPG, GIF, or WebP. Max 50MB.
+              <div className="flex flex-col items-center justify-center p-6 text-center">
+                <Upload className="h-10 w-10 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Upload your artwork</h3>
+                <p className="text-sm text-muted-foreground">
+                  PNG, JPG, GIF, WEBP or SVG (max. 10MB)
                 </p>
-                <Button variant="secondary" type="button">Choose File</Button>
               </div>
               <input 
                 id="nft-upload" 
@@ -434,29 +487,40 @@ const NFTForm = () => {
                 onChange={handleImageUpload}
               />
             </label>
-          )}
-          
-          {uploadedImage && (
-            <div className="p-4">
-              <h3 className="font-medium">
-                {form.watch("title") || "Untitled NFT"}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {form.watch("description") || "No description provided"}
-              </p>
-              
-              <div className="mt-4 flex justify-between items-center">
-                <div>
-                  <p className="text-xs text-muted-foreground">Starting price</p>
-                  <p className="font-medium">{form.watch("startingPrice") || 0} LSK</p>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setUploadedImage(null)}>
-                  Change Image
-                </Button>
+          </Card>
+        )}
+        
+        {/* Add mint button after metadata is created */}
+        {metadataUrl && !txHash && (
+          <Button
+            type="button"
+            className="w-full mt-4"
+            onClick={handleMintNFT}
+            disabled={isMinting || !isConnected}
+          >
+            {isMinting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Minting NFT...
+              </>
+            ) : (
+              "Mint NFT"
+            )}
+          </Button>
+        )}
+        
+        {/* Show transaction hash if minted */}
+        {txHash && (
+          <Alert className="mt-4">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <div className="ml-2">
+              <div className="font-medium">NFT Minted Successfully!</div>
+              <div className="text-xs break-all mt-1">
+                Transaction: {txHash}
               </div>
             </div>
-          )}
-        </Card>
+          </Alert>
+        )}
         
         {/* Instructions or tips for creators */}
         <div className="mt-6 p-4 bg-zenthra-slate-50 dark:bg-zenthra-blue/40 rounded-lg">
