@@ -9,9 +9,14 @@ import { Loader2 } from 'lucide-react';
 type ProtectedRouteProps = {
   children: ReactNode;
   redirectTo?: string;
+  showPrompt?: boolean; // New prop to determine behavior
 };
 
-export function ProtectedRoute({ children, redirectTo = '/' }: ProtectedRouteProps) {
+export function ProtectedRoute({ 
+  children, 
+  redirectTo = '/', 
+  showPrompt = true // Default to showing prompt
+}: ProtectedRouteProps) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -23,7 +28,8 @@ export function ProtectedRoute({ children, redirectTo = '/' }: ProtectedRoutePro
   }
 
   if (!isAuthenticated) {
-    return (
+    // Either redirect or show a prompt based on prop
+    return showPrompt ? (
       <div className="container py-12">
         <Card className="max-w-md mx-auto">
           <CardContent className="pt-6 flex flex-col items-center text-center">
@@ -35,6 +41,8 @@ export function ProtectedRoute({ children, redirectTo = '/' }: ProtectedRoutePro
           </CardContent>
         </Card>
       </div>
+    ) : (
+      <Navigate to={redirectTo} replace />
     );
   }
 
