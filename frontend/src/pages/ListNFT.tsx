@@ -6,10 +6,17 @@ import { useAccount } from "wagmi";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { ListNFTForm } from "@/components/create/ListNFTForm";
-import { readContract } from '@wagmi/core';
+import { createPublicClient, http } from 'viem';
+import { mainnet } from 'viem/chains'; // Replace with your preferred chain
 import { contractAbi } from '@/lib/contract-abi';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS as `0x${string}`;
+
+// Create a public client instance
+const publicClient = createPublicClient({
+  chain: mainnet, // Change to your preferred chain
+  transport: http()
+});
 
 interface NFTDetails {
   tokenId: string;
@@ -33,8 +40,9 @@ export default function ListNFT() {
         setIsLoading(true);
         setError(null);
         
-        const data = await readContract({
-          address: CONTRACT_ADDRESS,
+        // Call readContract directly without passing the public client
+        const data = await publicClient.readContract({
+          address: CONTRACT_ADDRESS as `0x${string}`,
           abi: contractAbi,
           functionName: 'getNFTDetails',
           args: [id],
