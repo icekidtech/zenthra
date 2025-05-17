@@ -1,9 +1,15 @@
-import { readContract } from 'wagmi/actions';
-import { getHttpClient } from 'wagmi/query';
+import { createPublicClient, http } from 'viem';
+import { mainnet } from 'viem/chains'; // Import your preferred chain
 import { contractAbi } from './contract-abi';
 
 // Contract address from the deployed blockchain
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS || '0x...'; // Add fallback
+
+// Create a public client instance
+const publicClient = createPublicClient({
+  chain: mainnet, // Change to your preferred chain
+  transport: http()
+});
 
 export interface AuctionItem {
   id: string;
@@ -19,7 +25,7 @@ export interface AuctionItem {
 
 export async function fetchActiveAuctions() {
   try {
-    const data = await readContract(getHttpClient(), {
+    const data = await publicClient.readContract({
       address: CONTRACT_ADDRESS as `0x${string}`,
       abi: contractAbi,
       functionName: 'getActiveAuctions',
@@ -35,7 +41,7 @@ export async function fetchActiveAuctions() {
 // Fetch a single auction's details
 export async function fetchAuctionDetails(auctionId: string) {
   try {
-    const data = await readContract(getHttpClient(), {
+    const data = await publicClient.readContract({
       address: CONTRACT_ADDRESS as `0x${string}`,
       abi: contractAbi,
       functionName: 'getAuction',
