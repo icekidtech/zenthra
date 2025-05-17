@@ -10,7 +10,7 @@ import { useAccount } from "wagmi";
 import { getOwnedNFTs } from "@/lib/contract-operations";
 import { Loader2 } from "lucide-react";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import NFTPreview from '@/components/nft/NFTPreview';
+import { NFTPreview } from '../components/nft/NFTPreview';
 
 const Create = () => {
   const { isConnected, address } = useAccount();
