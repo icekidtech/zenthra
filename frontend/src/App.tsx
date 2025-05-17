@@ -8,6 +8,7 @@ import Index from '@/pages/Index';
 import Dashboard from '@/pages/Dashboard';
 import Create from '@/pages/Create';
 import Help from '@/pages/Help';
+import NotFound from '@/pages/NotFound';
 
 function App() {
   return (
@@ -15,16 +16,17 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/dashboard" element={
-          <ProtectedRoute>
+          <ProtectedRoute redirectTo="/" showPrompt={true}>
             <Dashboard />
           </ProtectedRoute>
         } />
         <Route path="/create" element={
-          <ProtectedRoute>
+          <ProtectedRoute redirectTo="/" showPrompt={true}>
             <Create />
           </ProtectedRoute>
         } />
         <Route path="/help" element={<Help />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
     </AuthProvider>
