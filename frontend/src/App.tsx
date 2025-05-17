@@ -9,6 +9,8 @@ import Dashboard from '@/pages/Dashboard';
 import Create from '@/pages/Create';
 import Help from '@/pages/Help';
 import NotFound from '@/pages/NotFound';
+// Import the new page
+import ListNFT from '@/pages/ListNFT';
 
 function App() {
   return (
@@ -23,6 +25,12 @@ function App() {
         <Route path="/create" element={
           <ProtectedRoute redirectTo="/" showPrompt={true}>
             <Create />
+          </ProtectedRoute>
+        } />
+        {/* Add the new route */}
+        <Route path="/create/list/:id" element={
+          <ProtectedRoute redirectTo="/" showPrompt={true}>
+            <ListNFT />
           </ProtectedRoute>
         } />
         <Route path="/help" element={<Help />} />
